@@ -268,6 +268,8 @@ const HOOK_EVENT_TYPES = [
   "SessionEnd",
   "TeammateIdle",
   "TaskCompleted",
+  "WorktreeCreate",
+  "WorktreeRemove",
 ] as const;
 
 /**
@@ -305,6 +307,8 @@ function buildHookEntry(
     SessionEnd: { script: "session_end" },
     TeammateIdle: { script: "teammate_idle" },
     TaskCompleted: { script: "task_completed" },
+    WorktreeCreate: { script: "worktree_create" },
+    WorktreeRemove: { script: "worktree_remove" },
   };
 
   const info = hookMap[eventType];
