@@ -254,24 +254,23 @@ export function insertTheme(theme: Theme): Theme {
 
 export function updateTheme(id: string, updates: Partial<Theme>): boolean {
   const allowedFields = ['displayName', 'description', 'colors', 'isPublic', 'updatedAt', 'tags'];
-  const setClause = Object.keys(updates)
-    .filter(key => allowedFields.includes(key))
+  const keys = Object.keys(updates).filter(key => allowedFields.includes(key));
+  const setClause = keys
     .map(key => `${key} = ?`)
     .join(', ');
   
   if (!setClause) return false;
   
-  const values = Object.keys(updates)
-    .filter(key => allowedFields.includes(key))
-    .map(key => {
-      if (key === 'colors' || key === 'tags') {
-        return JSON.stringify(updates[key as keyof Theme]);
-      }
-      if (key === 'isPublic') {
-        return updates[key as keyof Theme] ? 1 : 0;
-      }
-      return updates[key as keyof Theme];
-    });
+  const values = keys.map((key): string | number | null => {
+    if (key === 'colors' || key === 'tags') {
+      return JSON.stringify(updates[key as keyof Theme]);
+    }
+    if (key === 'isPublic') {
+      return updates[key as keyof Theme] ? 1 : 0;
+    }
+    const value = updates[key as keyof Theme];
+    return typeof value === 'string' || typeof value === 'number' ? value : null;
+  });
   
   const stmt = db.prepare(`UPDATE themes SET ${setClause} WHERE id = ?`);
   const result = stmt.run(...values, id);

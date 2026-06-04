@@ -21,7 +21,7 @@ This project has Claude Code observability enabled. All hook events are captured
 
 Search and filter past hook events from the trace database.
 
-**Server endpoint**: `GET http://localhost:4000/events/query`
+**Server endpoint**: `GET http://localhost:4005/events/query`
 
 **Available filters**:
 | Parameter | Type | Description | Example |
@@ -39,16 +39,16 @@ Search and filter past hook events from the trace database.
 **Canned queries** (copy-paste ready):
 ```bash
 # Recent failures
-curl -s "http://localhost:4000/events/query?type=PostToolUseFailure&limit=10" | jq .
+curl -s "http://localhost:4005/events/query?type=PostToolUseFailure&limit=10" | jq .
 
 # Learning signals from last hour
-curl -s "http://localhost:4000/events/query?signal_only=true&since=$(date -v-1H +%s000)&limit=20" | jq .
+curl -s "http://localhost:4005/events/query?signal_only=true&since=$(date -v-1H +%s000)&limit=20" | jq .
 
 # All events for current session
-curl -s "http://localhost:4000/events/query?session_id=$CLAUDE_SESSION_ID&limit=100" | jq .
+curl -s "http://localhost:4005/events/query?session_id=$CLAUDE_SESSION_ID&limit=100" | jq .
 
 # Test failures specifically
-curl -s "http://localhost:4000/events/query?tag=test_failure&limit=10" | jq .
+curl -s "http://localhost:4005/events/query?tag=test_failure&limit=10" | jq .
 ```
 
 ### Digest Mode (`/observability digest`)
@@ -56,7 +56,7 @@ curl -s "http://localhost:4000/events/query?tag=test_failure&limit=10" | jq .
 Generate a summary of recent learning signals relevant to the current task.
 
 **Usage**: Run these queries to build a digest:
-1. Query recent signals: `curl -s "http://localhost:4000/events/query?signal_only=true&limit=20" | jq .`
+1. Query recent signals: `curl -s "http://localhost:4005/events/query?signal_only=true&limit=20" | jq .`
 2. Group by signal type
 3. Identify patterns (repeated failures, common error types)
 4. Suggest corrective actions
@@ -70,12 +70,12 @@ Generate a summary of recent learning signals relevant to the current task.
 
 Label specific events with tags and notes for future reference.
 
-**Server endpoint**: `POST http://localhost:4000/events/<id>/tag`
+**Server endpoint**: `POST http://localhost:4005/events/<id>/tag`
 
 **Usage**:
 ```bash
 # Tag an event as a learning signal
-curl -s -X POST "http://localhost:4000/events/42/tag" \
+curl -s -X POST "http://localhost:4005/events/42/tag" \
   -H "Content-Type: application/json" \
   -d '{"tags": ["learning_signal", "test_failure"], "note": "Flaky auth test - needs retry logic"}'
 ```
@@ -95,22 +95,22 @@ curl -s -X POST "http://localhost:4000/events/42/tag" \
 
 Explicitly log a learning signal to the trace database.
 
-**Server endpoint**: `POST http://localhost:4000/signals`
+**Server endpoint**: `POST http://localhost:4005/signals`
 
 **Usage**:
 ```bash
 # Log a test failure signal
-curl -s -X POST "http://localhost:4000/signals" \
+curl -s -X POST "http://localhost:4005/signals" \
   -H "Content-Type: application/json" \
   -d '{"type": "test_failure", "context": {"test": "auth.test.ts", "error": "timeout after 5000ms"}, "tags": ["learning_signal", "test_failure"]}'
 
 # Log a correction
-curl -s -X POST "http://localhost:4000/signals" \
+curl -s -X POST "http://localhost:4005/signals" \
   -H "Content-Type: application/json" \
   -d '{"type": "correction", "context": {"original": "used var", "fixed": "used const", "reason": "immutability"}, "tags": ["learning_signal", "correction"]}'
 
 # Log a QA rejection
-curl -s -X POST "http://localhost:4000/signals" \
+curl -s -X POST "http://localhost:4005/signals" \
   -H "Content-Type: application/json" \
   -d '{"type": "qa_rejection", "context": {"reviewer": "qa-agent", "reason": "missing input validation"}, "tags": ["learning_signal", "qa_rejection"]}'
 ```
@@ -141,8 +141,8 @@ bun scripts/observability/log-signal.ts \
 View and manage auto-detection rules that automatically tag events.
 
 **Server endpoints**:
-- GET: `curl -s http://localhost:4000/signals/rules | jq .`
-- POST: `curl -s -X POST http://localhost:4000/signals/rules -H "Content-Type: application/json" -d '{"rules": [...]}'`
+- GET: `curl -s http://localhost:4005/signals/rules | jq .`
+- POST: `curl -s -X POST http://localhost:4005/signals/rules -H "Content-Type: application/json" -d '{"rules": [...]}'`
 
 **Default rules** (configured in `.claude/observability.json`):
 1. `test_failure` -- Tags PostToolUseFailure events containing test/jest/vitest/pytest
@@ -153,30 +153,30 @@ View and manage auto-detection rules that automatically tag events.
 **Adding a custom rule**:
 ```bash
 # Fetch current rules, add new one, update
-RULES=$(curl -s http://localhost:4000/signals/rules | jq '.rules')
+RULES=$(curl -s http://localhost:4005/signals/rules | jq '.rules')
 NEW_RULE='{"name":"lint_failure","description":"Linting failures","hook_event_type":"PostToolUseFailure","payload_match":"eslint|biome|prettier","auto_tag":["learning_signal","lint_failure"]}'
 UPDATED=$(echo $RULES | jq ". + [$NEW_RULE]")
-curl -s -X POST http://localhost:4000/signals/rules -H "Content-Type: application/json" -d "{\"rules\": $UPDATED}"
+curl -s -X POST http://localhost:4005/signals/rules -H "Content-Type: application/json" -d "{\"rules\": $UPDATED}"
 ```
 
 ### Export Mode (`/observability export`)
 
 Export matching events for external analysis.
 
-**Server endpoint**: `GET http://localhost:4000/events/export`
+**Server endpoint**: `GET http://localhost:4005/events/export`
 
 **Formats**: json, jsonl, csv
 
 **Usage**:
 ```bash
 # Export all failures as JSONL (for ML pipelines)
-curl -s "http://localhost:4000/events/export?format=jsonl&type=PostToolUseFailure" > failures.jsonl
+curl -s "http://localhost:4005/events/export?format=jsonl&type=PostToolUseFailure" > failures.jsonl
 
 # Export learning signals as CSV
-curl -s "http://localhost:4000/events/export?format=csv&signal_only=true" > signals.csv
+curl -s "http://localhost:4005/events/export?format=csv&signal_only=true" > signals.csv
 
 # Export last 24 hours as JSON
-curl -s "http://localhost:4000/events/export?format=json&since=$(date -v-1d +%s000)" > events.json
+curl -s "http://localhost:4005/events/export?format=json&since=$(date -v-1d +%s000)" > events.json
 ```
 
 ## Configuration
@@ -188,7 +188,7 @@ See `/observability rules` mode for managing auto-detection rules.
 ## Architecture
 
 ```
-Hook Events --> send_event.py/ts --> HTTP POST --> Bun Server (port 4000) --> SQLite
+Hook Events --> send_event.py/ts --> HTTP POST --> Bun Server (port 4005) --> SQLite
                                                         |
-                                                  WebSocket --> Vue Dashboard (port 5173)
+                                                  WebSocket --> Vue Dashboard (port 5174)
 ```

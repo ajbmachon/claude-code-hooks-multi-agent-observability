@@ -105,8 +105,15 @@ async function sendResponseToAgent(
   });
 }
 
-// Try to start on desired port, fall back to next available ports
-const desiredPort = parseInt(process.env.SERVER_PORT || '4000');
+// Try to start on desired port, fall back to next available ports.
+// Defaults avoid the FlowConAI/Heedvane hub backend on 4000.
+const desiredPort = parseInt(
+  process.env.PORT ||
+    process.env.SERVER_PORT ||
+    process.env.OBSERVABILITY_PORT ||
+    '4005',
+  10
+);
 let actualPort = desiredPort;
 
 function tryServe(port: number): ReturnType<typeof Bun.serve> | null {
@@ -132,7 +139,7 @@ function tryServe(port: number): ReturnType<typeof Bun.serve> | null {
     // POST /events - Receive new events
     if (url.pathname === '/events' && req.method === 'POST') {
       try {
-        const event: HookEvent = await req.json();
+        const event = await req.json() as HookEvent;
         
         // Validate required fields
         if (!event.source_app || !event.session_id || !event.hook_event_type || !event.payload) {
@@ -198,10 +205,10 @@ function tryServe(port: number): ReturnType<typeof Bun.serve> | null {
 
     // POST /events/:id/respond - Respond to HITL request
     if (url.pathname.match(/^\/events\/\d+\/respond$/) && req.method === 'POST') {
-      const id = parseInt(url.pathname.split('/')[2]);
+      const id = parseInt(url.pathname.split('/')[2] || '', 10);
 
       try {
-        const response: HumanInTheLoopResponse = await req.json();
+        const response = await req.json() as HumanInTheLoopResponse;
         response.respondedAt = Date.now();
 
         // Update event in database
@@ -329,7 +336,7 @@ function tryServe(port: number): ReturnType<typeof Bun.serve> | null {
     
     // GET /api/themes/:id/export - Export a theme (MUST be before generic :id route)
     if (url.pathname.match(/^\/api\/themes\/[^\/]+\/export$/) && req.method === 'GET') {
-      const id = url.pathname.split('/')[3];
+      const id = url.pathname.split('/')[3] || '';
 
       const result = await exportThemeById(id);
       if (!result.success) {
@@ -468,7 +475,7 @@ function tryServe(port: number): ReturnType<typeof Bun.serve> | null {
 
     // POST /events/:id/tag - Tag an event
     if (url.pathname.match(/^\/events\/\d+\/tag$/) && req.method === 'POST') {
-      const id = parseInt(url.pathname.split('/')[2]);
+      const id = parseInt(url.pathname.split('/')[2] || '', 10);
 
       try {
         const body = await req.json() as { tags: string[]; note?: string };
@@ -697,11 +704,6 @@ function tryServe(port: number): ReturnType<typeof Bun.serve> | null {
     
     close(ws) {
       console.log('WebSocket client disconnected');
-      wsClients.delete(ws);
-    },
-    
-    error(ws, error) {
-      console.error('WebSocket error:', error);
       wsClients.delete(ws);
     }
   }

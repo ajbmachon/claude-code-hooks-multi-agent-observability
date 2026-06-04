@@ -53,7 +53,7 @@ def main():
         sys.exit(0)
 
 
-def check_auto_detect_rules(event_type, input_data, server_url='http://localhost:4000'):
+def check_auto_detect_rules(event_type, input_data, server_url='http://localhost:4005'):
     """Check observability.json rules and auto-tag matching events."""
     try:
         import re

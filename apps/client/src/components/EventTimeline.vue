@@ -173,7 +173,6 @@
 import { ref, computed, watch, nextTick } from 'vue';
 import type { HookEvent, AgentRegistryEntry } from '../types';
 import EventRow from './EventRow.vue';
-import AgentTypeBadge from './AgentTypeBadge.vue';
 import AgentHoverCard from './AgentHoverCard.vue';
 import { useEventColors } from '../composables/useEventColors';
 import { useEventSearch } from '../composables/useEventSearch';

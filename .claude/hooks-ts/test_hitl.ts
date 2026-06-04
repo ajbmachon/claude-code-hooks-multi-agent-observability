@@ -10,7 +10,7 @@
 
 async function main() {
   console.log("Sending HITL permission request...");
-  console.log("Check your dashboard at http://localhost:5173");
+  console.log("Check your dashboard at http://localhost:5174");
   console.log("Waiting for your response...\n");
 
   const sessionData = {
@@ -28,7 +28,7 @@ Do you want to allow this operation?`;
 
   // Send the HITL request to the server
   try {
-    const response = await fetch("http://localhost:4000/events", {
+    const response = await fetch("http://localhost:4005/events", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

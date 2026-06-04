@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "server_url": "http://localhost:4000",
+  "server_url": "http://localhost:4005",
   "source_app": "observability-toolkit",
   "auto_detect": {
     "enabled": true,

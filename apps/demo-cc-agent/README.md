@@ -34,7 +34,7 @@ cd apps/demo-cc-agent
 claude -p --verbose --model sonnet --output-format stream-json "read the README.md and run ls" > "claude-output.json"
 ```
 
-The hooks will automatically send events to the observability server at `http://localhost:4000/events`.
+The hooks will automatically send events to the observability server at `http://localhost:4005/events` when started with the default local scripts.
 
 ## Hook Events
 

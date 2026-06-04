@@ -22,9 +22,9 @@ Key capabilities:
 ## Architecture
 
 ```
-Claude Agents --> Hook Scripts --> HTTP POST --> Bun Server (port 4000) --> SQLite
+Claude Agents --> Hook Scripts --> HTTP POST --> Bun Server (port 4005) --> SQLite
                                                       |
-                                                WebSocket --> Vue Dashboard (port 5173)
+                                                WebSocket --> Vue Dashboard (port 5174)
 ```
 
 ![Agent Data Flow Animation](images/AgentDataFlowV2.gif)
@@ -69,18 +69,18 @@ bun run obs:status    # Check if server and client are running
 ./.observability/obs.sh status   # Check service status
 ```
 
-Then open **http://localhost:5173** in your browser and run Claude Code -- events will stream in automatically.
+Then open **http://localhost:5174** in your browser and run Claude Code -- events will stream in automatically.
 
 ### Setup Options
 
 ```
 Usage:
-  bun scripts/setup-observability.ts --project <path> --source-app <name> [--port 4000] [--language ts|py]
+  bun scripts/setup-observability.ts --project <path> --source-app <name> [--port 4005] [--language ts|py]
 
 Options:
   --project      Target project directory (required)
   --source-app   Application identifier for hook events (required)
-  --port         Observability server port (default: 4000)
+  --port         Observability server port (default: 4005)
   --language     Hook language: ts or py (auto-detect if omitted)
 ```
 
@@ -142,16 +142,16 @@ The server exposes REST and WebSocket endpoints:
 
 ```bash
 # Recent failures
-curl -s "http://localhost:4000/events/query?type=PostToolUseFailure&limit=10" | jq .
+curl -s "http://localhost:4005/events/query?type=PostToolUseFailure&limit=10" | jq .
 
 # Learning signals from last hour
-curl -s "http://localhost:4000/events/query?signal_only=true&since=$(date -v-1H +%s000)&limit=20" | jq .
+curl -s "http://localhost:4005/events/query?signal_only=true&since=$(date -v-1H +%s000)&limit=20" | jq .
 
 # Export all events as JSONL
-curl -s "http://localhost:4000/events/export?format=jsonl" > events.jsonl
+curl -s "http://localhost:4005/events/export?format=jsonl" > events.jsonl
 
 # Tag an event as a learning signal
-curl -s -X POST "http://localhost:4000/events/42/tag" \
+curl -s -X POST "http://localhost:4005/events/42/tag" \
   -H "Content-Type: application/json" \
   -d '{"tags": ["learning_signal", "test_failure"], "note": "Flaky auth test"}'
 ```
@@ -171,7 +171,7 @@ bun .observability/scripts/log-signal.ts \
 claude-code-hooks-multi-agent-observability/
 |
 |-- apps/
-|   |-- server/              # Bun TypeScript server (port 4000)
+|   |-- server/              # Bun TypeScript server (port 4005)
 |   |   |-- src/
 |   |   |   |-- index.ts     # HTTP/WebSocket endpoints
 |   |   |   |-- db.ts        # SQLite database & migrations
@@ -179,7 +179,7 @@ claude-code-hooks-multi-agent-observability/
 |   |   |-- package.json
 |   |   |-- events.db        # SQLite database (gitignored)
 |   |
-|   |-- client/              # Vue 3 TypeScript client (port 5173)
+|   |-- client/              # Vue 3 TypeScript client (port 5174)
 |       |-- src/
 |       |   |-- App.vue
 |       |   |-- components/  # EventTimeline, FilterPanel, LivePulseChart, etc.
@@ -260,7 +260,7 @@ just open         # Open dashboard in browser
 just test-event
 
 # Manual event test
-curl -X POST http://localhost:4000/events \
+curl -X POST http://localhost:4005/events \
   -H "Content-Type: application/json" \
   -d '{
     "source_app": "test",
@@ -269,6 +269,17 @@ curl -X POST http://localhost:4000/events \
     "payload": {"tool_name": "Bash", "tool_input": {"command": "ls"}}
   }'
 ```
+
+## Configuration
+
+The local dashboard defaults away from `4000` because the Heedvane hub/backend commonly uses that port:
+
+- Server: `4005` (HTTP/WebSocket), override with `SERVER_PORT` or `OBSERVABILITY_PORT`.
+- Client: `5174` (Vite dev server), override with `CLIENT_PORT`.
+- Client API URL: `VITE_OBSERVABILITY_API_URL=http://localhost:4005`.
+- Client WebSocket URL: `VITE_OBSERVABILITY_WS_URL=ws://localhost:4005/stream`.
+
+For the old standalone defaults, run `SERVER_PORT=4000 CLIENT_PORT=5173 ./scripts/start-system.sh`.
 
 ## Security
 
