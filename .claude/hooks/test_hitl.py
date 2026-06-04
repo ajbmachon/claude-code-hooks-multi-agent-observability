@@ -8,7 +8,7 @@ from utils.hitl import ask_permission
 
 def main():
     print("🚀 Sending HITL permission request...")
-    print("📊 Check your dashboard at http://localhost:5173")
+    print("📊 Check your dashboard at http://localhost:5174")
     print("⏳ Waiting for your response...\n")
 
     session_data = {

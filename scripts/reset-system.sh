@@ -15,9 +15,10 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 # Get the project root directory (parent of scripts)
 PROJECT_ROOT="$( cd "$SCRIPT_DIR/.." && pwd )"
 
-# Read ports from environment variables or use defaults
-SERVER_PORT=${SERVER_PORT:-4000}
-CLIENT_PORT=${CLIENT_PORT:-5173}
+# Read ports from environment variables or use defaults.
+# Defaults avoid the FlowConAI/Heedvane hub backend on 4000.
+SERVER_PORT="${SERVER_PORT:-${OBSERVABILITY_PORT:-4005}}"
+CLIENT_PORT="${CLIENT_PORT:-5174}"
 
 echo -e "${BLUE}Configuration:${NC}"
 echo -e "  Server Port: ${GREEN}$SERVER_PORT${NC}"
@@ -50,10 +51,10 @@ kill_port() {
 }
 
 # Kill server processes
-kill_port $SERVER_PORT "server"
+kill_port "$SERVER_PORT" "server"
 
 # Kill client dev server
-kill_port $CLIENT_PORT "client"
+kill_port "$CLIENT_PORT" "client"
 
 # Kill any remaining bun processes related to our apps
 echo -e "\n${YELLOW}Checking for remaining bun processes...${NC}"

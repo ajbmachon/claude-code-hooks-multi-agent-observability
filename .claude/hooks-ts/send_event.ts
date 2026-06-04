@@ -16,7 +16,7 @@ import { generateEventSummary } from "./utils/summarizer";
 
 async function sendEventToServer(
   eventData: Record<string, unknown>,
-  serverUrl = "http://localhost:4000/events",
+  serverUrl = "http://localhost:4005/events",
 ): Promise<boolean> {
   try {
     const response = await fetch(serverUrl, {
@@ -47,7 +47,7 @@ async function main() {
     options: {
       "source-app": { type: "string" },
       "event-type": { type: "string" },
-      "server-url": { type: "string", default: "http://localhost:4000/events" },
+      "server-url": { type: "string", default: "http://localhost:4005/events" },
       "add-chat": { type: "boolean", default: false },
       summarize: { type: "boolean", default: false },
     },

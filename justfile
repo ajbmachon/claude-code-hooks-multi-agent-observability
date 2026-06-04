@@ -4,8 +4,8 @@
 set dotenv-load
 set quiet
 
-server_port := env("SERVER_PORT", "4000")
-client_port := env("CLIENT_PORT", "5173")
+server_port := env("SERVER_PORT", env("OBSERVABILITY_PORT", "4005"))
+client_port := env("CLIENT_PORT", "5174")
 project_root := justfile_directory()
 
 # List available recipes
@@ -25,7 +25,7 @@ stop:
 # Stop then start
 restart: stop start
 
-# ─── Server (Bun, port 4000) ────────────────────────────
+# ─── Server (Bun, port 4005) ────────────────────────────
 
 # Install server dependencies
 server-install:
@@ -33,17 +33,17 @@ server-install:
 
 # Start server in dev mode (watch)
 server:
-    cd {{project_root}}/apps/server && SERVER_PORT={{server_port}} bun run dev
+    cd {{project_root}}/apps/server && PORT={{server_port}} SERVER_PORT={{server_port}} bun run dev
 
 # Start server in production mode
 server-prod:
-    cd {{project_root}}/apps/server && SERVER_PORT={{server_port}} bun run start
+    cd {{project_root}}/apps/server && PORT={{server_port}} SERVER_PORT={{server_port}} bun run start
 
 # Typecheck server
 server-typecheck:
     cd {{project_root}}/apps/server && bun run typecheck
 
-# ─── Client (Vue + Vite, port 5173) ─────────────────────
+# ─── Client (Vue + Vite, port 5174) ─────────────────────
 
 # Install client dependencies
 client-install:
@@ -51,7 +51,7 @@ client-install:
 
 # Start client dev server
 client:
-    cd {{project_root}}/apps/client && VITE_PORT={{client_port}} bun run dev
+    cd {{project_root}}/apps/client && VITE_OBSERVABILITY_API_URL=http://localhost:{{server_port}} VITE_OBSERVABILITY_WS_URL=ws://localhost:{{server_port}}/stream bun run dev -- --host 0.0.0.0 --port {{client_port}}
 
 # Build client for production
 client-build:
@@ -117,9 +117,9 @@ open:
 
 # Start observability server + client in background
 obs-start:
-    cd apps/server && bun run src/index.ts &
-    cd apps/client && bun run dev &
-    @echo "Dashboard: http://localhost:5173 | Server: http://localhost:4000"
+    cd apps/server && PORT={{server_port}} SERVER_PORT={{server_port}} bun run src/index.ts &
+    cd apps/client && VITE_OBSERVABILITY_API_URL=http://localhost:{{server_port}} VITE_OBSERVABILITY_WS_URL=ws://localhost:{{server_port}}/stream bun run dev -- --host 0.0.0.0 --port {{client_port}} &
+    @echo "Dashboard: http://localhost:{{client_port}} | Server: http://localhost:{{server_port}}"
 
 # Stop observability processes
 obs-stop:
@@ -128,17 +128,17 @@ obs-stop:
 
 # Check observability service status
 obs-status:
-    @curl -sf http://localhost:4000/health && echo "Server: UP" || echo "Server: DOWN"
-    @curl -sf http://localhost:5173 && echo "Client: UP" || echo "Client: DOWN"
+    @curl -sf http://localhost:{{server_port}}/health && echo "Server: UP" || echo "Server: DOWN"
+    @curl -sf http://localhost:{{client_port}} && echo "Client: UP" || echo "Client: DOWN"
 
 # Query events (optional: type, since, limit)
 obs-query type="" since="" limit="50":
-    @curl -s "http://localhost:4000/events/query?type={{type}}&since={{since}}&limit={{limit}}" | bun -e "console.log(JSON.stringify(JSON.parse(await Bun.stdin.text()), null, 2))"
+    @curl -s "http://localhost:{{server_port}}/events/query?type={{type}}&since={{since}}&limit={{limit}}" | bun -e "console.log(JSON.stringify(JSON.parse(await Bun.stdin.text()), null, 2))"
 
 # Export events (optional: format, type, since)
 obs-export format="jsonl" type="" since="":
-    @curl -s "http://localhost:4000/events/export?format={{format}}&type={{type}}&since={{since}}"
+    @curl -s "http://localhost:{{server_port}}/events/export?format={{format}}&type={{type}}&since={{since}}"
 
 # View recent learning signals
 obs-signals:
-    @curl -s "http://localhost:4000/events/query?signal_only=true&limit=20" | bun -e "console.log(JSON.stringify(JSON.parse(await Bun.stdin.text()), null, 2))"
+    @curl -s "http://localhost:{{server_port}}/events/query?signal_only=true&limit=20" | bun -e "console.log(JSON.stringify(JSON.parse(await Bun.stdin.text()), null, 2))"

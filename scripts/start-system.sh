@@ -15,9 +15,10 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 # Get the project root directory (parent of scripts)
 PROJECT_ROOT="$( cd "$SCRIPT_DIR/.." && pwd )"
 
-# Read ports from environment variables or use defaults
-SERVER_PORT=${SERVER_PORT:-4000}
-CLIENT_PORT=${CLIENT_PORT:-5173}
+# Read ports from environment variables or use defaults.
+# Defaults avoid the FlowConAI/Heedvane hub backend on 4000.
+SERVER_PORT="${SERVER_PORT:-${OBSERVABILITY_PORT:-4005}}"
+CLIENT_PORT="${CLIENT_PORT:-5174}"
 
 echo -e "${BLUE}Configuration:${NC}"
 echo -e "  Server Port: ${GREEN}$SERVER_PORT${NC}"
@@ -51,19 +52,19 @@ kill_port() {
 }
 
 # Kill any existing processes on our ports
-kill_port $SERVER_PORT "server"
-kill_port $CLIENT_PORT "client"
+kill_port "$SERVER_PORT" "server"
+kill_port "$CLIENT_PORT" "client"
 
 # Start server
 echo -e "\n${GREEN}Starting server on port $SERVER_PORT...${NC}"
 cd "$PROJECT_ROOT/apps/server"
-SERVER_PORT=$SERVER_PORT bun run dev &
+PORT="$SERVER_PORT" SERVER_PORT="$SERVER_PORT" bun run dev &
 SERVER_PID=$!
 
 # Wait for server to be ready
 echo -e "${YELLOW}Waiting for server to start...${NC}"
 for i in {1..10}; do
-    if curl -s http://localhost:$SERVER_PORT/health >/dev/null 2>&1 || curl -s http://localhost:$SERVER_PORT/events/filter-options >/dev/null 2>&1; then
+    if curl -s "http://localhost:$SERVER_PORT/health" >/dev/null 2>&1 || curl -s "http://localhost:$SERVER_PORT/events/filter-options" >/dev/null 2>&1; then
         echo -e "${GREEN}✅ Server is ready!${NC}"
         break
     fi
@@ -73,13 +74,15 @@ done
 # Start client
 echo -e "\n${GREEN}Starting client on port $CLIENT_PORT...${NC}"
 cd "$PROJECT_ROOT/apps/client"
-VITE_PORT=$CLIENT_PORT bun run dev &
+VITE_OBSERVABILITY_API_URL="${VITE_OBSERVABILITY_API_URL:-http://localhost:$SERVER_PORT}" \
+VITE_OBSERVABILITY_WS_URL="${VITE_OBSERVABILITY_WS_URL:-ws://localhost:$SERVER_PORT/stream}" \
+bun run dev -- --host 0.0.0.0 --port "$CLIENT_PORT" &
 CLIENT_PID=$!
 
 # Wait for client to be ready
 echo -e "${YELLOW}Waiting for client to start...${NC}"
 for i in {1..10}; do
-    if curl -s http://localhost:$CLIENT_PORT >/dev/null 2>&1; then
+    if curl -s "http://localhost:$CLIENT_PORT" >/dev/null 2>&1; then
         echo -e "${GREEN}✅ Client is ready!${NC}"
         break
     fi

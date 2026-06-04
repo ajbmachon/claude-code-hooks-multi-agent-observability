@@ -52,7 +52,7 @@ try {
   }
 
   // Read config from observability.json
-  let serverUrl = 'http://localhost:4000';
+  let serverUrl = 'http://localhost:4005';
   let sourceApp = '';
 
   const configPath = resolve('.claude/observability.json');

@@ -3,7 +3,7 @@
  * setup-observability.ts — Scaffold the full observability stack into a target project.
  *
  * Usage:
- *   bun scripts/setup-observability.ts --project /path/to/target --source-app my-app [--port 4000] [--language ts|py]
+ *   bun scripts/setup-observability.ts --project /path/to/target --source-app my-app [--port 4005] [--language ts|py]
  *
  * This script is IDEMPOTENT: running it twice produces identical results.
  * Every step checks before writing.
@@ -22,12 +22,12 @@ import {
 // ─── CLI Argument Parsing ────────────────────────────────────
 
 const USAGE = `Usage:
-  bun scripts/setup-observability.ts --project <path> --source-app <name> [--port 4000] [--language ts|py]
+  bun scripts/setup-observability.ts --project <path> --source-app <name> [--port 4005] [--language ts|py]
 
 Options:
   --project      Target project directory (required)
   --source-app   Application identifier for hook events (required)
-  --port         Observability server port (default: 4000)
+  --port         Observability server port (default: 4005)
   --language     Hook language: ts or py (auto-detect if omitted)
   --help         Show this help message
 
@@ -39,7 +39,7 @@ const { values } = parseArgs({
   options: {
     project: { type: "string", short: "p" },
     "source-app": { type: "string", short: "s" },
-    port: { type: "string", default: "4000" },
+    port: { type: "string", default: "4005" },
     language: { type: "string", short: "l" },
     help: { type: "boolean", short: "h", default: false },
   },
@@ -65,7 +65,7 @@ if (!values["source-app"]) {
 
 const targetDir = resolve(values.project);
 const sourceApp = values["source-app"]!;
-const port = parseInt(values.port || "4000", 10);
+const port = parseInt(values.port || "4005", 10);
 const languageArg = values.language as "ts" | "py" | undefined;
 
 // Toolkit repo root = parent of scripts/
@@ -567,9 +567,9 @@ async function mergePackageJsonScripts(): Promise<void> {
 
   const obsScripts: Record<string, string> = {
     "obs:start":
-      `cd .observability/server && SERVER_PORT=${port} bun run src/index.ts & cd .observability/client && bun run dev &`,
+      `cd .observability/server && PORT=${port} SERVER_PORT=${port} bun run src/index.ts & cd .observability/client && VITE_OBSERVABILITY_API_URL=http://localhost:${port} VITE_OBSERVABILITY_WS_URL=ws://localhost:${port}/stream bun run dev -- --host 0.0.0.0 --port 5174 &`,
     "obs:stop":
-      `lsof -ti :${port} | xargs kill 2>/dev/null; lsof -ti :5173 | xargs kill 2>/dev/null; echo 'Stopped observability services'`,
+      `lsof -ti :${port} | xargs kill 2>/dev/null; lsof -ti :5174 | xargs kill 2>/dev/null; echo 'Stopped observability services'`,
     "obs:status":
       `curl -sf http://localhost:${port}/health && echo 'Server: UP' || echo 'Server: DOWN'`,
   };
@@ -616,18 +616,18 @@ async function createObsShellScript(): Promise<void> {
 OBS_PORT=${port}
 case "$1" in
   start)
-    cd "$(dirname "$0")/server" && SERVER_PORT=$OBS_PORT bun run src/index.ts &
-    cd "$(dirname "$0")/client" && bun run dev &
-    echo "Dashboard: http://localhost:5173 | Server: http://localhost:$OBS_PORT"
+    cd "$(dirname "$0")/server" && PORT=$OBS_PORT SERVER_PORT=$OBS_PORT bun run src/index.ts &
+    cd "$(dirname "$0")/client" && VITE_OBSERVABILITY_API_URL=http://localhost:$OBS_PORT VITE_OBSERVABILITY_WS_URL=ws://localhost:$OBS_PORT/stream bun run dev -- --host 0.0.0.0 --port 5174 &
+    echo "Dashboard: http://localhost:5174 | Server: http://localhost:$OBS_PORT"
     ;;
   stop)
     lsof -ti :$OBS_PORT | xargs kill 2>/dev/null
-    lsof -ti :5173 | xargs kill 2>/dev/null
+    lsof -ti :5174 | xargs kill 2>/dev/null
     echo "Stopped observability services"
     ;;
   status)
     curl -sf http://localhost:$OBS_PORT/health && echo "Server: UP" || echo "Server: DOWN"
-    curl -sf http://localhost:5173 > /dev/null 2>&1 && echo "Client: UP" || echo "Client: DOWN"
+    curl -sf http://localhost:5174 > /dev/null 2>&1 && echo "Client: UP" || echo "Client: DOWN"
     ;;
   *)
     echo "Usage: ./obs.sh {start|stop|status}"
@@ -741,7 +741,7 @@ function printSummary(lang: Language): void {
 
   console.log("\n  NEXT STEPS:");
   console.log(`    1. Start the dashboard:  ${startCmd}`);
-  console.log(`    2. Open the dashboard:   open http://localhost:5173`);
+  console.log(`    2. Open the dashboard:   open http://localhost:5174`);
   console.log(`    3. Run Claude Code — hooks will send events automatically`);
   console.log("=".repeat(60) + "\n");
 }
